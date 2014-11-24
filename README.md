@@ -10,12 +10,11 @@ Usage
 var request = require('superagent');
 var valence = require('superagent-valence')('MyAppName');
 
-valence(request);
-
 request
 .get('/d2l/api/lp/1.5/users/whoami')
+.use(valence)
 .end(function(res) {
-  var user = JSON.parse(res.body);
+  var user = res.body;
   console.log('Hello, ' + user.FirstName + ' ' + user.LastName);
 });
 ```
