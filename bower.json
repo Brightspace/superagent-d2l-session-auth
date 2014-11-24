@@ -1,0 +1,24 @@
+{
+  "name": "superagent-valence",
+  "main": "index.js",
+  "version": "1.0.0",
+  "homepage": "https://github.com/j3parker/superagent-valence",
+  "authors": [
+    "Jacob Parker <j3parker@csclub.uwaterloo.ca>"
+  ],
+  "description": "A superagent plugin that adds D2L auth headers",
+  "keywords": [
+    "superagent"
+  ],
+  "license": "Apache 2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "superagent": "~0.21.0"
+  }
+}
