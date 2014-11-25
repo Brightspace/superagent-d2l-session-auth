@@ -12,5 +12,10 @@
     "free-range"
   ],
   "author": "D2L Corporation",
-  "license": "Apache 2.0"
+  "license": "Apache 2.0",
+  "devDependencies": {
+    "mocha": "^2.0.1",
+    "nock": "^0.51.0",
+    "superagent": "^0.21.0"
+  }
 }
