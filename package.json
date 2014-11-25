@@ -1,5 +1,5 @@
 {
-  "name": "supertest-valence",
+  "name": "superagent-valence",
   "version": "0.0.1",
   "description": "A superagent plugin that adds D2L auth headers",
   "main": "index.js",
