@@ -1,0 +1,13 @@
+sudo: false
+language: node_js
+node_js:
+- 0.10
+deploy:
+  provider: npm
+  email: d2ltravisdeploy@d2l.com
+  api_key:
+    secure: ZyMjywm5byaca8VM04++cI+p7vXNyltpe/fJEqk+ass2IP6QB/RiW0lKr2ZI+OozVgJ2EvCB8TdH3LNh9saTE6J1n2yc1F2JukQsP26jlEuGKv6M2ew4iI1eK7/kf/JIW5yRS+oWxKiv0VHnniG3J6mhwPXXJ9RW6mnvduI6ae8=
+  on:
+    tags: true
+    repo: Brightspace/superagent-d2l-session-auth
+    all_branches: true
