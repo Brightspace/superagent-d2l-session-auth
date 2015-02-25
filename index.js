@@ -1,9 +1,7 @@
 'use strict';
 
-module.exports = function(appId) {
-    return function(request) {
-        request.set('X-Csrf-Token', localStorage['XSRF.Token']);
-        request.set('X-D2L-App-Id', appId);
-        return request;
-    };
+module.exports = function(req) {
+	req.set('X-Csrf-Token', localStorage['XSRF.Token']);
+	req.set('X-D2L-App-Id', 'deprecated');
+	return req;
 };
