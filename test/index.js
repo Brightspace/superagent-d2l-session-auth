@@ -1,16 +1,15 @@
 var nock = require('nock'),
 	request = require('superagent');
 
-var APP_ID = 'some-app-id';
 var CSRF_TOKEN = 'some-token';
 global.localStorage = { 'XSRF.Token': CSRF_TOKEN };
 
-var valence = require('../')(APP_ID);
+var valence = require('../');
 
 describe('superagent-valence', function() {
-	it('adds app id', function() {
+	it('adds app id (legacy)', function() {
 		var endpoint = nock('http://localhost')
-			.matchHeader('X-D2L-App-Id', APP_ID)
+			.matchHeader('X-D2L-App-Id', 'deprecated')
 			.matchHeader('X-Csrf-Token', /.*/)
 			.get('/url')
 			.reply(200);
