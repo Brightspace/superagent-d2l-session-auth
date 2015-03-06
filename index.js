@@ -13,7 +13,7 @@ function addHeaders(req) {
 	req.set('X-D2L-App-Id', 'deprecated');
 }
 
-function processRefreshResponse(cb) { return function(res) {
+function processRefreshResponse(res, cb) {
 	if (!res.ok) {
 		return cb(false);
 	}
@@ -36,7 +36,7 @@ function processRefreshResponse(cb) { return function(res) {
 	}
 
 	return cb(true);
-};}
+}
 
 function refreshCookie(cb) {
 	var req = superagent
@@ -44,7 +44,9 @@ function refreshCookie(cb) {
 
 	addHeaders(req);
 
-	req.end(processRefreshResponse(cb));
+	req.end(function (res) {
+		processRefreshResponse(res, cb);
+	});
 }
 
 function preflight(req, oldEnd) { return function(cb) {
