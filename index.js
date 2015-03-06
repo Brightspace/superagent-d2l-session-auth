@@ -24,7 +24,8 @@ function processRefreshResponse(cb) { return function(res) {
 	}
 
 	var directives = cacheControl.split(',');
-	for (var i = 0; i < directives.length; i++) {
+	var len = directives.length;
+	for (var i = 0; i < len; i++) {
 		if (directives[i].indexOf('max-age') == -1) {
 			continue;
 		}
