@@ -50,17 +50,19 @@ function refreshCookie(cb) {
 	});
 }
 
-function preflight(req, oldEnd) { return function(cb) {
-	if (now() < global.D2LAccessTokenExpiresAt) {
-		req.end = oldEnd;
-		return req.end(cb);
-	}
+function preflight(req, oldEnd) {
+	return function(cb) {
+		if (now() < global.D2LAccessTokenExpiresAt) {
+			req.end = oldEnd;
+			return req.end(cb);
+		}
 
-	refreshCookie(function() {
-		req.end = oldEnd;
-		return req.end(cb);
-	});
-};}
+		refreshCookie(function() {
+			req.end = oldEnd;
+			return req.end(cb);
+		});
+	};
+}
 
 module.exports = function(req) {
 	// This plugin only works for relative URLs. Sending XSRF tokens to foreign
