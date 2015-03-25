@@ -15,12 +15,13 @@ function addHeaders(req) {
 
 function processRefreshResponse(res, cb) {
 	if (!res.ok) {
-		return cb(false);
+		// In the future we should log an error
+		return cb();
 	}
 
 	var cacheControl = res.headers['cache-control'];
 	if (!cacheControl) {
-		return cb(true);
+		return cb();
 	}
 
 	var directives = cacheControl.split(',');
@@ -35,7 +36,7 @@ function processRefreshResponse(res, cb) {
 		break;
 	}
 
-	return cb(true);
+	return cb();
 }
 
 function refreshCookie(cb) {
@@ -55,11 +56,7 @@ function preflight(req, oldEnd) { return function(cb) {
 		return req.end(cb);
 	}
 
-	refreshCookie(function(success) {
-		if (!success) {
-			return req.abort();
-		}
-
+	refreshCookie(function() {
 		req.end = oldEnd;
 		return req.end(cb);
 	});
