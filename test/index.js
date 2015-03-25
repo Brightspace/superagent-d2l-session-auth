@@ -134,26 +134,27 @@ describe('superagent-valence', function() {
 			});
 	});
 
-	it('blocks request on preflight failure', function(done) {
+	it('doesn\'t block request on preflight failure', function(done) {
 		this.timeout(20);
 		global.D2LAccessTokenExpiresAt = 0;
 
 		var endpoint = nock('http://localhost')
 			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(404);
+			.reply(404)
+			.get('/api')
+			.reply(200);
 
 		request
 			.get('/api')
 			.use(valence)
 			.end(function() {
-				(true).should.be.false('unreachable code');
+				endpoint.done();
+
+				global.D2LAccessTokenExpiresAt
+					.should.equal(0);
+
 				done();
 			});
-
-		endpoint.done();
-
-		global.D2LAccessTokenExpiresAt
-			.should.equal(0);
 
 		setTimeout(function() { done(); }, 10);
 	});
