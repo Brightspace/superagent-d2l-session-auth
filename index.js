@@ -14,8 +14,8 @@ function addHeaders(req) {
 	return req;
 }
 
-function processRefreshResponse(res, cb) {
-	if (!res.ok) {
+function processRefreshResponse(err, res, cb) {
+	if (err || !res.ok) {
 		// In the future we should log an error
 		return cb();
 	}
@@ -44,22 +44,22 @@ function refreshCookie(cb) {
 	superagent
 		.post('/d2l/lp/auth/oauth2/refreshcookie')
 		.use(addHeaders)
-		.end(function (res) {
-			processRefreshResponse(res, cb);
+		.end(function(err, res) {
+			processRefreshResponse(err, res, cb);
 		});
 }
 
 function preflight(req, oldEnd) {
 	return function(cb) {
-		if (now() < global.D2LAccessTokenExpiresAt) {
+		function finish() {
 			req.end = oldEnd;
 			return req.end(cb);
 		}
-
-		refreshCookie(function() {
-			req.end = oldEnd;
-			return req.end(cb);
-		});
+		if(now() < global.D2LAccessTokenExpiresAt) {
+			return finish();
+		}
+		refreshCookie(finish);
+		return this;
 	};
 }
 
