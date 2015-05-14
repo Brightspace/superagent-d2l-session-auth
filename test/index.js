@@ -158,4 +158,23 @@ describe('superagent-valence', function() {
 
 		setTimeout(function() { done(); }, 10);
 	});
+
+	it('should return something from "end" when not expired', function() {
+		global.D2LAccessTokenExpiresAt = theFuture();
+		var req = request
+			.get('/api')
+			.use(valence)
+			.end(function() {});
+		should.exist(req);
+	});
+
+	it('should return something from "end" when expired', function() {
+		global.D2LAccessTokenExpiresAt = 0;
+		var req = request
+			.get('/api')
+			.use(valence)
+			.end(function() {});
+		should.exist(req);
+	});
+
 });
