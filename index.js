@@ -52,15 +52,15 @@ function refreshCookie(cb) {
 
 function preflight(req, oldEnd) {
 	return function(cb) {
-		if (now() < global.D2LAccessTokenExpiresAt) {
+		function finish() {
 			req.end = oldEnd;
 			return req.end(cb);
 		}
-
-		refreshCookie(function() {
-			req.end = oldEnd;
-			return req.end(cb);
-		});
+		if(now() < global.D2LAccessTokenExpiresAt) {
+			return finish();
+		}
+		refreshCookie(finish);
+		return this;
 	};
 }
 
