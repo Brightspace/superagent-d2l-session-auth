@@ -13,8 +13,8 @@ function addHeaders(req) {
 	req.set('X-D2L-App-Id', 'deprecated');
 }
 
-function processRefreshResponse(res, cb) {
-	if (!res.ok) {
+function processRefreshResponse(err, res, cb) {
+	if (err || !res.ok) {
 		// In the future we should log an error
 		return cb();
 	}
@@ -45,8 +45,8 @@ function refreshCookie(cb) {
 
 	addHeaders(req);
 
-	req.end(function (res) {
-		processRefreshResponse(res, cb);
+	req.end(function(err, res) {
+		processRefreshResponse(err, res, cb);
 	});
 }
 
