@@ -11,6 +11,7 @@ function now() {
 function addHeaders(req) {
 	req.set('X-Csrf-Token', localStorage['XSRF.Token']);
 	req.set('X-D2L-App-Id', 'deprecated');
+	return req;
 }
 
 function processRefreshResponse(res, cb) {
@@ -40,14 +41,12 @@ function processRefreshResponse(res, cb) {
 }
 
 function refreshCookie(cb) {
-	var req = superagent
-		.post('/d2l/lp/auth/oauth2/refreshcookie');
-
-	addHeaders(req);
-
-	req.end(function (res) {
-		processRefreshResponse(res, cb);
-	});
+	superagent
+		.post('/d2l/lp/auth/oauth2/refreshcookie')
+		.use(addHeaders)
+		.end(function (res) {
+			processRefreshResponse(res, cb);
+		});
 }
 
 function preflight(req, oldEnd) {
@@ -75,7 +74,7 @@ module.exports = function(req) {
 		return req;
 	}
 
-	addHeaders(req);
+	req.use(addHeaders);
 
 	var oldEnd = req.end;
 	req.end = preflight(req, oldEnd);
