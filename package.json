@@ -1,6 +1,6 @@
 {
   "name": "superagent-d2l-session-auth",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "A superagent plugin that adds D2L auth headers",
   "main": "index.js",
   "repository": {
@@ -9,7 +9,9 @@
   },
   "keywords": [
     "d2l",
-    "free-range"
+    "free-range",
+    "frau",
+    "superagent"
   ],
   "author": "D2L Corporation",
   "license": "Apache 2.0",

@@ -7,7 +7,7 @@ nock.disableNetConnect();
 var XSRF_TOKEN = 'some-token';
 global.localStorage = { 'XSRF.Token': XSRF_TOKEN };
 
-var valence = require('../');
+var valence = require('../')(request);
 
 function now() {
 	return Date.now()/1000 | 0;
