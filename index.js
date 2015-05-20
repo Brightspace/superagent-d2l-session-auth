@@ -1,7 +1,5 @@
 'use strict';
 
-var superagent = require('superagent');
-
 global.D2LAccessTokenExpiresAt = 0;
 
 function now() {
@@ -14,20 +12,21 @@ function addHeaders(req) {
 	return req;
 }
 
-function processRefreshResponse(err, res, cb) {
-	if (err || !res.ok) {
-		// In the future we should log an error
-		return cb();
+function processRefreshResponse(err, res) {
+
+	// In the future we should log an error
+	if(err || !res.ok) {
+		return;
 	}
 
 	var cacheControl = res.headers['cache-control'];
-	if (!cacheControl) {
-		return cb();
+	if(!cacheControl) {
+		return;
 	}
 
 	var directives = cacheControl.split(',');
 	var len = directives.length;
-	for (var i = 0; i < len; i++) {
+	for(var i=0; i<len; i++) {
 		if (directives[i].indexOf('max-age') == -1) {
 			continue;
 		}
@@ -37,47 +36,43 @@ function processRefreshResponse(err, res, cb) {
 		break;
 	}
 
-	return cb();
 }
 
-function refreshCookie(cb) {
-	superagent
-		.post('/d2l/lp/auth/oauth2/refreshcookie')
-		.use(addHeaders)
-		.end(function(err, res) {
-			processRefreshResponse(err, res, cb);
-		});
-}
+module.exports = function(superagent) {
+	return function(req) {
 
-function preflight(req, oldEnd) {
-	return function(cb) {
-		function finish() {
-			req.end = oldEnd;
-			return req.end(cb);
+		// This plugin only works for relative URLs. Sending XSRF tokens to foreign
+		// origins would be bad. This plugin is a no-op in those cases.
+		if (req.url[0] != '/') {
+			console.log(
+				'Warning: using superagent-d2l-session-auth for non-relative URLs will ' +
+				'fall back to vanilla superagent. Either use a relative URL (if possible)' +
+				' or don\'t use this plugin for cross-origin requests.');
+			return req;
 		}
-		if(now() < global.D2LAccessTokenExpiresAt) {
-			return finish();
-		}
-		refreshCookie(finish);
-		return this;
-	};
-}
 
-module.exports = function(req) {
-	// This plugin only works for relative URLs. Sending XSRF tokens to foreign
-	// origins would be bad. This plugin is a no-op in those cases.
-	if (req.url[0] != '/') {
-		console.log(
-			'Warning: using superagent-d2l-session-auth for non-relative URLs will ' +
-			'fall back to vanilla superagent. Either use a relative URL (if possible)' +
-			' or don\'t use this plugin for cross-origin requests.');
+		req.use(addHeaders);
+
+		var oldEnd = req.end;
+		req.end = function(cb) {
+			function finish() {
+				req.end = oldEnd;
+				return req.end(cb);
+			}
+			if(now() < global.D2LAccessTokenExpiresAt) {
+				return finish();
+			}
+			superagent
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.use(addHeaders)
+				.end(function(err, res) {
+					processRefreshResponse(err, res);
+					finish();
+				});
+			return this;
+		};
+
 		return req;
-	}
 
-	req.use(addHeaders);
-
-	var oldEnd = req.end;
-	req.end = preflight(req, oldEnd);
-
-	return req;
+	};
 };

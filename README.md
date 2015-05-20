@@ -11,8 +11,8 @@ Usage
 -----
 
 ```js
-var request = require('superagent');
-var auth = require('superagent-d2l-session-auth');
+var request = require('superagent'),
+    auth = require('superagent-d2l-session-auth')(request);
 
 request
     .get('/d2l/api/lp/1.5/users/whoami')
