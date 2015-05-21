@@ -18,6 +18,11 @@ function theFuture() {
 }
 
 describe('superagent-valence', function() {
+	beforeEach(function() {
+		global.D2LAccessTokenExpiresAt = 0;
+		global.D2LOAuth2Disabled = false;
+	});
+
 	it('adds app id (legacy)', function() {
 		global.D2LAccessTokenExpiresAt = theFuture();
 
@@ -58,8 +63,6 @@ describe('superagent-valence', function() {
 	});
 
 	it('sends refreshcookie preflight on boot', function(done) {
-		global.D2LAccessTokenExpiresAt = 0;
-
 		var endpoint = nock('http://localhost')
 			.post('/d2l/lp/auth/oauth2/refreshcookie')
 			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
@@ -82,9 +85,41 @@ describe('superagent-valence', function() {
 
 	});
 
-	it('handles basic cache-control header', function(done) {
-		global.D2LAccessTokenExpiresAt = 0;
+	it('stops trying refreshcookie once it gets a 404', function(done) {
+		var endpoint = nock('http://localhost')
+			.post('/d2l/lp/auth/oauth2/refreshcookie')
+			.reply(404)
+			.get('/api')
+			.reply(200);
 
+		request
+			.get('/api')
+			.use(valence)
+			.end(function() {
+				endpoint.done();
+				global.D2LOAuth2Disabled.should.be.exactly(true);
+				done();
+			});
+	});
+
+	it('doesnt call refreshcookie if oauth2 is disabled', function(done) {
+		global.D2LOAuth2Disabled = true;
+
+		var endpoint = nock('http://localhost')
+			.get('/api')
+			.reply(200);
+
+		request
+			.get('/api')
+			.use(valence)
+			.end(function() {
+				endpoint.done();
+				global.D2LOAuth2Disabled.should.be.exactly(true);
+				done();
+			});
+	});
+
+	it('handles basic cache-control header', function(done) {
 		var maxLength = 10;
 
 		var endpoint = nock('http://localhost')
@@ -109,8 +144,6 @@ describe('superagent-valence', function() {
 	});
 
 	it('handles complicated cache-control header', function(done) {
-		global.D2LAccessTokenExpiresAt = 0;
-
 		var maxLength = 100;
 
 		var endpoint = nock('http://localhost')
@@ -135,12 +168,9 @@ describe('superagent-valence', function() {
 	});
 
 	it('doesn\'t block request on preflight failure', function(done) {
-		this.timeout(20);
-		global.D2LAccessTokenExpiresAt = 0;
-
 		var endpoint = nock('http://localhost')
 			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(404)
+			.reply(500)
 			.get('/api')
 			.reply(200);
 
@@ -155,8 +185,6 @@ describe('superagent-valence', function() {
 
 				done();
 			});
-
-		setTimeout(function() { done(); }, 10);
 	});
 
 	it('should return something from "end" when not expired', function() {
@@ -169,7 +197,6 @@ describe('superagent-valence', function() {
 	});
 
 	it('should return something from "end" when expired', function() {
-		global.D2LAccessTokenExpiresAt = 0;
 		var req = request
 			.get('/api')
 			.use(valence)
