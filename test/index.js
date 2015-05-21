@@ -7,7 +7,8 @@ nock.disableNetConnect();
 var XSRF_TOKEN = 'some-token';
 global.localStorage = { 'XSRF.Token': XSRF_TOKEN };
 
-var valence = require('../')(request);
+var authLib = require('../');
+var auth = authLib(request);
 
 function now() {
 	return Date.now()/1000 | 0;
@@ -17,14 +18,14 @@ function theFuture() {
 	return 1000 + now();
 }
 
-describe('superagent-valence', function() {
+describe('superagent-auth', function() {
 	beforeEach(function() {
-		global.D2LAccessTokenExpiresAt = 0;
-		global.D2LOAuth2Disabled = false;
+		authLib._enableOAuth2();
+		authLib._setAccessTokenExpiry(0);
 	});
 
 	it('adds app id (legacy)', function() {
-		global.D2LAccessTokenExpiresAt = theFuture();
+		authLib._setAccessTokenExpiry(theFuture());
 
 		var endpoint = nock('http://localhost')
 			.matchHeader('X-D2L-App-Id', 'deprecated')
@@ -33,14 +34,14 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {});
 
 		endpoint.done();
 	});
 
 	it('adds csrf token for relative URLs', function() {
-		global.D2LAccessTokenExpiresAt = theFuture();
+		authLib._setAccessTokenExpiry(theFuture());
 
 		var endpoint = nock('http://localhost')
 			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
@@ -49,14 +50,14 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {});
 
 		endpoint.done();
 	});
 
 	it('does not add xsrf token for non-relative URLs', function() {
-		var req = request.get('http://localhost/api').use(valence);
+		var req = request.get('http://localhost/api').use(auth);
 
 		should.not.exist(req.header['X-Csrf-Token']);
 		req.end.should.equal(Object.getPrototypeOf(req).end); // no funny business
@@ -73,11 +74,11 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {
 				endpoint.done();
 
-				global.D2LAccessTokenExpiresAt
+				authLib._accessTokenExpiry()
 					.should.equal(0); // no cache-control --> can't set an expiry
 
 				done();
@@ -94,16 +95,19 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {
 				endpoint.done();
-				global.D2LOAuth2Disabled.should.be.exactly(true);
+
+				authLib._isOAuth2Enabled()
+					.should.be.exactly(false);
+
 				done();
 			});
 	});
 
 	it('doesnt call refreshcookie if oauth2 is disabled', function(done) {
-		global.D2LOAuth2Disabled = true;
+		authLib._disableOAuth2();
 
 		var endpoint = nock('http://localhost')
 			.get('/api')
@@ -111,10 +115,13 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {
 				endpoint.done();
-				global.D2LOAuth2Disabled.should.be.exactly(true);
+
+				authLib._isOAuth2Enabled()
+					.should.be.exactly(false);
+
 				done();
 			});
 	});
@@ -132,11 +139,11 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {
 				endpoint.done();
 
-				global.D2LAccessTokenExpiresAt
+				authLib._accessTokenExpiry()
 					.should.be.within(now() - maxLength, now() + maxLength);
 
 				done();
@@ -156,11 +163,11 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {
 				endpoint.done();
 
-				global.D2LAccessTokenExpiresAt
+				authLib._accessTokenExpiry()
 					.should.be.within(now() - maxLength, now() + maxLength);
 
 				done();
@@ -176,11 +183,11 @@ describe('superagent-valence', function() {
 
 		request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {
 				endpoint.done();
 
-				global.D2LAccessTokenExpiresAt
+				authLib._accessTokenExpiry()
 					.should.equal(0);
 
 				done();
@@ -191,16 +198,18 @@ describe('superagent-valence', function() {
 		global.D2LAccessTokenExpiresAt = theFuture();
 		var req = request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {});
+
 		should.exist(req);
 	});
 
 	it('should return something from "end" when expired', function() {
 		var req = request
 			.get('/api')
-			.use(valence)
+			.use(auth)
 			.end(function() {});
+
 		should.exist(req);
 	});
 

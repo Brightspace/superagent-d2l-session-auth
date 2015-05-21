@@ -1,7 +1,7 @@
 'use strict';
 
-global.D2LAccessTokenExpiresAt = 0;
-global.D2LOAuth2Disabled = false;
+var accessTokenExpiresAt = 0,
+	oauth2Enabled = true;
 
 function now() {
 	return Date.now()/1000 | 0;
@@ -16,7 +16,7 @@ function addHeaders(req) {
 function processRefreshResponse(err, res) {
 	// Prior to OAuth 2 support the refreshcookie route returns 404.
 	if(res.status == 404) {
-		global.D2LOAuth2Disabled = true;
+		disableOAuth2();
 		return;
 	}
 
@@ -38,7 +38,7 @@ function processRefreshResponse(err, res) {
 		}
 
 		var maxAge = +directives[i].split('=')[1];
-		global.D2LAccessTokenExpiresAt = now() + maxAge;
+		setAccessTokenExpiry(now() + maxAge);
 		break;
 	}
 
@@ -59,7 +59,7 @@ module.exports = function(superagent) {
 
 		req.use(addHeaders);
 
-		if(global.D2LOAuth2Disabled) {
+		if(!isOAuth2Enabled()) {
 			return req;
 		}
 
@@ -69,7 +69,7 @@ module.exports = function(superagent) {
 				req.end = oldEnd;
 				return req.end(cb);
 			}
-			if(now() < global.D2LAccessTokenExpiresAt) {
+			if(now() < accessTokenExpiry()) {
 				return finish();
 			}
 			superagent
@@ -86,3 +86,29 @@ module.exports = function(superagent) {
 
 	};
 };
+
+module.exports._accessTokenExpiry = accessTokenExpiry;
+module.exports._setAccessTokenExpiry = setAccessTokenExpiry;
+module.exports._enableOAuth2 = enableOAuth2;
+module.exports._disableOAuth2 = disableOAuth2;
+module.exports._isOAuth2Enabled = isOAuth2Enabled;
+
+function enableOAuth2() {
+	oauth2Enabled = true;
+}
+
+function disableOAuth2() {
+	oauth2Enabled = false;
+}
+
+function isOAuth2Enabled() {
+	return oauth2Enabled;
+}
+
+function accessTokenExpiry() {
+	return accessTokenExpiresAt;
+}
+
+function setAccessTokenExpiry(val) {
+	accessTokenExpiresAt = val;
+}
