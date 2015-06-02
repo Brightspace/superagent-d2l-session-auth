@@ -7,8 +7,7 @@ nock.disableNetConnect();
 var XSRF_TOKEN = 'some-token';
 global.localStorage = { 'XSRF.Token': XSRF_TOKEN };
 
-var authLib = require('../');
-var auth = authLib(request);
+var auth = require('../');
 
 function now() {
 	return Date.now()/1000 | 0;
@@ -20,12 +19,12 @@ function theFuture() {
 
 describe('superagent-auth', function() {
 	beforeEach(function() {
-		authLib._enableOAuth2();
-		authLib._setAccessTokenExpiry(0);
+		auth._enableOAuth2();
+		auth._setAccessTokenExpiry(0);
 	});
 
 	it('adds app id (legacy)', function() {
-		authLib._setAccessTokenExpiry(theFuture());
+		auth._setAccessTokenExpiry(theFuture());
 
 		var endpoint = nock('http://localhost')
 			.matchHeader('X-D2L-App-Id', 'deprecated')
@@ -41,7 +40,7 @@ describe('superagent-auth', function() {
 	});
 
 	it('adds csrf token for relative URLs', function() {
-		authLib._setAccessTokenExpiry(theFuture());
+		auth._setAccessTokenExpiry(theFuture());
 
 		var endpoint = nock('http://localhost')
 			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
@@ -78,7 +77,7 @@ describe('superagent-auth', function() {
 			.end(function() {
 				endpoint.done();
 
-				authLib._accessTokenExpiry()
+				auth._accessTokenExpiry()
 					.should.equal(0); // no cache-control --> can't set an expiry
 
 				done();
@@ -99,7 +98,7 @@ describe('superagent-auth', function() {
 			.end(function() {
 				endpoint.done();
 
-				authLib._isOAuth2Enabled()
+				auth._isOAuth2Enabled()
 					.should.be.exactly(false);
 
 				done();
@@ -107,7 +106,7 @@ describe('superagent-auth', function() {
 	});
 
 	it('doesnt call refreshcookie if oauth2 is disabled', function(done) {
-		authLib._disableOAuth2();
+		auth._disableOAuth2();
 
 		var endpoint = nock('http://localhost')
 			.get('/api')
@@ -119,7 +118,7 @@ describe('superagent-auth', function() {
 			.end(function() {
 				endpoint.done();
 
-				authLib._isOAuth2Enabled()
+				auth._isOAuth2Enabled()
 					.should.be.exactly(false);
 
 				done();
@@ -143,7 +142,7 @@ describe('superagent-auth', function() {
 			.end(function() {
 				endpoint.done();
 
-				authLib._accessTokenExpiry()
+				auth._accessTokenExpiry()
 					.should.be.within(now() - maxLength, now() + maxLength);
 
 				done();
@@ -167,7 +166,7 @@ describe('superagent-auth', function() {
 			.end(function() {
 				endpoint.done();
 
-				authLib._accessTokenExpiry()
+				auth._accessTokenExpiry()
 					.should.be.within(now() - maxLength, now() + maxLength);
 
 				done();
@@ -187,7 +186,7 @@ describe('superagent-auth', function() {
 			.end(function() {
 				endpoint.done();
 
-				authLib._accessTokenExpiry()
+				auth._accessTokenExpiry()
 					.should.equal(0);
 
 				done();

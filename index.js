@@ -1,5 +1,7 @@
 'use strict';
 
+var superagent = require('superagent');
+
 var accessTokenExpiresAt = 0,
 	oauth2Enabled = true;
 
@@ -44,47 +46,45 @@ function processRefreshResponse(err, res) {
 
 }
 
-module.exports = function(superagent) {
-	return function(req) {
+module.exports = function(req) {
 
-		// This plugin only works for relative URLs. Sending XSRF tokens to foreign
-		// origins would be bad. This plugin is a no-op in those cases.
-		if(req.url[0] != '/') {
-			console.log(
-				'Warning: using superagent-d2l-session-auth for non-relative URLs will ' +
-				'fall back to vanilla superagent. Either use a relative URL (if possible)' +
-				' or don\'t use this plugin for cross-origin requests.');
-			return req;
-		}
-
-		req.use(addHeaders);
-
-		if(!isOAuth2Enabled()) {
-			return req;
-		}
-
-		var oldEnd = req.end;
-		req.end = function(cb) {
-			function finish() {
-				req.end = oldEnd;
-				return req.end(cb);
-			}
-			if(now() < accessTokenExpiry()) {
-				return finish();
-			}
-			superagent
-				.post('/d2l/lp/auth/oauth2/refreshcookie')
-				.use(addHeaders)
-				.end(function(err, res) {
-					processRefreshResponse(err, res);
-					finish();
-				});
-			return this;
-		};
-
+	// This plugin only works for relative URLs. Sending XSRF tokens to foreign
+	// origins would be bad. This plugin is a no-op in those cases.
+	if(req.url[0] != '/') {
+		console.log(
+			'Warning: using superagent-d2l-session-auth for non-relative URLs will ' +
+			'fall back to vanilla superagent. Either use a relative URL (if possible)' +
+			' or don\'t use this plugin for cross-origin requests.');
 		return req;
+	}
 
+	req.use(addHeaders);
+
+	if(!isOAuth2Enabled()) {
+		return req;
+	}
+
+	var oldEnd = req.end;
+	req.end = function(cb) {
+		function finish() {
+			req.end = oldEnd;
+			return req.end(cb);
+		}
+		if(now() < accessTokenExpiry()) {
+			return finish();
+		}
+		superagent
+			.post('/d2l/lp/auth/oauth2/refreshcookie')
+			.use(addHeaders)
+			.end(function(err, res) {
+				processRefreshResponse(err, res);
+				finish();
+			});
+		return this;
 	};
+
+	return req;
+
 };
 
 module.exports._accessTokenExpiry = accessTokenExpiry;
