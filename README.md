@@ -12,7 +12,7 @@ Usage
 
 ```js
 var request = require('superagent'),
-    auth = require('superagent-d2l-session-auth')(request);
+    auth = require('superagent-d2l-session-auth');
 
 request
     .get('/d2l/api/lp/1.5/users/whoami')
