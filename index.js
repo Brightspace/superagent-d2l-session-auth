@@ -3,14 +3,37 @@
 var superagent = require('superagent');
 
 var accessTokenExpiresAt = 0,
-	oauth2Enabled = true;
+	oauth2Enabled = true,
+	originRe = /^(http:\/\/|https:\/\/)[^\/]+/i;
 
 function now() {
 	return Date.now()/1000 | 0;
 }
 
+// node.js's URL.parse can do this, but adds ~20Kb
+function tryGetOrigin(url) {
+	var match = originRe.exec(url);
+	return (match !== null) ? match[0] : null;
+}
+
+function getCsrfTokenKey(url) {
+	var tokenKey = 'XSRF.Token';
+	var origin = tryGetOrigin(url);
+	if(origin === null) {
+		return tokenKey;
+	}
+	tokenKey += '@' + origin;
+	return tokenKey;
+}
+
+function getRefreshCookieUrl(url) {
+	var origin = tryGetOrigin(url) || '';
+	return origin + '/d2l/lp/auth/oauth2/refreshcookie';
+}
+
 function addHeaders(req) {
-	req.set('X-Csrf-Token', localStorage['XSRF.Token']);
+	var tokenKey = getCsrfTokenKey(req.url);
+	req.set('X-Csrf-Token', localStorage[tokenKey]);
 	req.set('X-D2L-App-Id', 'deprecated');
 	return req;
 }
@@ -48,13 +71,10 @@ function processRefreshResponse(err, res) {
 
 module.exports = function(req) {
 
-	// This plugin only works for relative URLs. Sending XSRF tokens to foreign
-	// origins would be bad. This plugin is a no-op in those cases.
-	if(req.url[0] != '/') {
-		console.log(
-			'Warning: using superagent-d2l-session-auth for non-relative URLs will ' +
-			'fall back to vanilla superagent. Either use a relative URL (if possible)' +
-			' or don\'t use this plugin for cross-origin requests.');
+	// This plugin only works for origins which have a CSRF token. It will be
+	// a no-op otherwise.
+	var csrfTokenKey = getCsrfTokenKey(req.url);
+	if(!localStorage[csrfTokenKey]) {
 		return req;
 	}
 
@@ -74,7 +94,7 @@ module.exports = function(req) {
 			return finish();
 		}
 		superagent
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
+			.post(getRefreshCookieUrl(req.url))
 			.use(addHeaders)
 			.end(function(err, res) {
 				processRefreshResponse(err, res);
@@ -92,6 +112,7 @@ module.exports._setAccessTokenExpiry = setAccessTokenExpiry;
 module.exports._enableOAuth2 = enableOAuth2;
 module.exports._disableOAuth2 = disableOAuth2;
 module.exports._isOAuth2Enabled = isOAuth2Enabled;
+module.exports._tryGetOrigin = tryGetOrigin;
 
 function enableOAuth2() {
 	oauth2Enabled = true;
