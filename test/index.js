@@ -270,12 +270,25 @@ describe('superagent-auth', function() {
 			{url:'https://www.domain.com/api', result:'https://www.domain.com'},
 			{url:'HtTpS://domain.com/api', result:'HtTpS://domain.com'}
 		].forEach(function(val) {
-			it('should parse \"' + val.url + '\" to \"' + val.result + '"', function() {
+			it('should parse "' + val.url + '" to "' + val.result + '"', function() {
 				var origin = auth._tryGetOrigin(val.url);
 				should.equal(origin, val.result);
 			});
 		});
 
+	});
+
+	describe('getCsrfTokenKey', function() {
+		[
+			{url:'/some-url', result:'XSRF.Token'},
+			{url:'http://www.foo.com', result:'XSRF.Token@http://www.foo.com'},
+			{url:'HtTp://wWw.FoO.cOm', result:'XSRF.Token@http://www.foo.com'}
+		].forEach(function(val) {
+			it('should get "' + val.result + '" for input "' + val.url + '"', function() {
+				var tokenKey = auth._getCsrfTokenKey(val.url);
+				should.equal(tokenKey, val.result);
+			});
+		});
 	});
 
 });

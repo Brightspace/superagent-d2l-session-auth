@@ -22,7 +22,7 @@ function getCsrfTokenKey(url) {
 	if(origin === null) {
 		return tokenKey;
 	}
-	tokenKey += '@' + origin;
+	tokenKey += '@' + origin.toLowerCase();
 	return tokenKey;
 }
 
@@ -113,6 +113,7 @@ module.exports._enableOAuth2 = enableOAuth2;
 module.exports._disableOAuth2 = disableOAuth2;
 module.exports._isOAuth2Enabled = isOAuth2Enabled;
 module.exports._tryGetOrigin = tryGetOrigin;
+module.exports._getCsrfTokenKey = getCsrfTokenKey;
 
 function enableOAuth2() {
 	oauth2Enabled = true;
