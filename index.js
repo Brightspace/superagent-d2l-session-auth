@@ -26,11 +26,6 @@ function getCsrfTokenKey(url) {
 	return tokenKey;
 }
 
-function getRefreshCookieUrl(url) {
-	var origin = tryGetOrigin(url) || '';
-	return origin + '/d2l/lp/auth/oauth2/refreshcookie';
-}
-
 function addHeaders(req) {
 	var tokenKey = getCsrfTokenKey(req.url);
 	req.set('X-Csrf-Token', localStorage[tokenKey]);
@@ -84,6 +79,8 @@ module.exports = function(req) {
 		return req;
 	}
 
+	var origin = tryGetOrigin(req.url) || '';
+
 	var oldEnd = req.end;
 	req.end = function(cb) {
 		function finish() {
@@ -93,9 +90,13 @@ module.exports = function(req) {
 		if(now() < accessTokenExpiry()) {
 			return finish();
 		}
-		superagent
-			.post(getRefreshCookieUrl(req.url))
-			.use(addHeaders)
+		var request = superagent
+			.post(origin + '/d2l/lp/auth/oauth2/refreshcookie');
+		// withCredentials isn't available on the node version of superagent
+		if(origin.length > 0 && req.withCredentials !== undefined) {
+			request.withCredentials();
+		}
+		request.use(addHeaders)
 			.end(function(err, res) {
 				processRefreshResponse(err, res);
 				finish();
