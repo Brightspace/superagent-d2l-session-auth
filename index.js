@@ -93,7 +93,7 @@ module.exports = function(req) {
 		var request = superagent
 			.post(origin + '/d2l/lp/auth/oauth2/refreshcookie');
 		// withCredentials isn't available on the node version of superagent
-		if(origin.length > 0 && req.withCredentials !== undefined) {
+		if(origin.length > 0 && request.withCredentials !== undefined) {
 			request.withCredentials();
 		}
 		request.use(addHeaders)
