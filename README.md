@@ -17,7 +17,7 @@ var request = require('superagent'),
 request
     .get('/d2l/api/lp/1.5/users/whoami')
     .use(auth)
-    .end(function(res) {
+    .end(function(err, res) {
         var user = res.body;
         console.log('Hello, ' + user.FirstName + ' ' + user.LastName);
     });
