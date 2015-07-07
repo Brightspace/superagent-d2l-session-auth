@@ -5,11 +5,6 @@ var nock = require('nock'),
 nock.disableNetConnect();
 
 var XSRF_TOKEN = 'some-token';
-var XSRF_TOKEN_DOMAIN = 'some-other-token';
-global.localStorage = {
-	'XSRF.Token': XSRF_TOKEN,
-	'XSRF.Token@http://domain:1234': XSRF_TOKEN_DOMAIN
-};
 
 var auth = require('../');
 
@@ -28,6 +23,9 @@ describe('superagent-auth', function() {
 		beforeEach(function() {
 			auth._enableOAuth2();
 			auth._setAccessTokenExpiry(0);
+			global.localStorage = {
+				'XSRF.Token': XSRF_TOKEN
+			};
 		});
 
 		it('adds app id (legacy)', function() {
@@ -62,28 +60,16 @@ describe('superagent-auth', function() {
 			endpoint.done();
 		});
 
-		it('adds csrf token for non-relative known URLs', function(done) {
-			auth._setAccessTokenExpiry(theFuture());
-			var endpoint = nock('http://domain:1234')
-				.matchHeader('X-Csrf-Token', XSRF_TOKEN_DOMAIN)
-				.get('/api')
-				.reply(200);
-			request
-				.get('http://domain:1234/api')
-				.use(auth)
-				.end(function(err,res) {
-					should.not.exist(err);
-					should.exist(res);
-					endpoint.done();
-					done();
-				});
+		it('does not add xsrf token for relative URLs if token not present', function() {
+			global.localStorage = {};
+			var req = request.get('/api').use(auth);
+			should.not.exist(req.header['X-Csrf-Token']);
+			req.end.should.equal(Object.getPrototypeOf(req).end);
 		});
 
-		it('does not add xsrf token for non-relative unknown URLs', function() {
-			var req = request.get('http://localhost/api').use(auth);
-
+		it('does not add xsrf token for non-relative URLs', function() {
+			var req = request.get('http://domain:1234/api').use(auth);
 			should.not.exist(req.header['X-Csrf-Token']);
-			req.end.should.equal(Object.getPrototypeOf(req).end); // no funny business
 		});
 
 		it('sends refreshcookie preflight on boot for relative URLs', function(done) {
@@ -108,10 +94,8 @@ describe('superagent-auth', function() {
 		it('sends refreshcookie preflight on boot for known URLs', function(done) {
 			var endpoint = nock('http://domain:1234')
 				.post('/d2l/lp/auth/oauth2/refreshcookie')
-				.matchHeader('X-Csrf-Token', XSRF_TOKEN_DOMAIN)
 				.reply(204)
 				.get('/api')
-				.matchHeader('X-Csrf-Token', XSRF_TOKEN_DOMAIN)
 				.reply(200);
 			request
 				.get('http://domain:1234/api')
@@ -276,19 +260,6 @@ describe('superagent-auth', function() {
 			});
 		});
 
-	});
-
-	describe('getCsrfTokenKey', function() {
-		[
-			{url:'/some-url', result:'XSRF.Token'},
-			{url:'http://www.foo.com', result:'XSRF.Token@http://www.foo.com'},
-			{url:'HtTp://wWw.FoO.cOm', result:'XSRF.Token@http://www.foo.com'}
-		].forEach(function(val) {
-			it('should get "' + val.result + '" for input "' + val.url + '"', function() {
-				var tokenKey = auth._getCsrfTokenKey(val.url);
-				should.equal(tokenKey, val.result);
-			});
-		});
 	});
 
 });

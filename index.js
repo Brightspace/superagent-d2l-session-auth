@@ -4,7 +4,8 @@ var superagent = require('superagent');
 
 var accessTokenExpiresAt = 0,
 	oauth2Enabled = true,
-	originRe = /^(http:\/\/|https:\/\/)[^\/]+/i;
+	originRe = /^(http:\/\/|https:\/\/)[^\/]+/i,
+	csrfTokenKey = 'XSRF.Token';
 
 function now() {
 	return Date.now()/1000 | 0;
@@ -16,19 +17,11 @@ function tryGetOrigin(url) {
 	return (match !== null) ? match[0] : null;
 }
 
-function getCsrfTokenKey(url) {
-	var tokenKey = 'XSRF.Token';
-	var origin = tryGetOrigin(url);
-	if(origin === null) {
-		return tokenKey;
-	}
-	tokenKey += '@' + origin.toLowerCase();
-	return tokenKey;
-}
-
 function addHeaders(req) {
-	var tokenKey = getCsrfTokenKey(req.url);
-	req.set('X-Csrf-Token', localStorage[tokenKey]);
+	var origin = tryGetOrigin(req.url);
+	if(origin === null) {
+		req.set('X-Csrf-Token', localStorage[csrfTokenKey]);
+	}
 	req.set('X-D2L-App-Id', 'deprecated');
 	return req;
 }
@@ -66,10 +59,10 @@ function processRefreshResponse(err, res) {
 
 module.exports = function(req) {
 
-	// This plugin only works for origins which have a CSRF token. It will be
-	// a no-op otherwise.
-	var csrfTokenKey = getCsrfTokenKey(req.url);
-	if(!localStorage[csrfTokenKey]) {
+	// This plugin only works if a CSRF token is present,
+	// or if it's a non-relative URL. It's a no-op otherwise.
+	var origin = tryGetOrigin(req.url) || '';
+	if(!localStorage[csrfTokenKey] && origin.length === 0) {
 		return req;
 	}
 
@@ -78,8 +71,6 @@ module.exports = function(req) {
 	if(!isOAuth2Enabled()) {
 		return req;
 	}
-
-	var origin = tryGetOrigin(req.url) || '';
 
 	var oldEnd = req.end;
 	req.end = function(cb) {
@@ -114,7 +105,6 @@ module.exports._enableOAuth2 = enableOAuth2;
 module.exports._disableOAuth2 = disableOAuth2;
 module.exports._isOAuth2Enabled = isOAuth2Enabled;
 module.exports._tryGetOrigin = tryGetOrigin;
-module.exports._getCsrfTokenKey = getCsrfTokenKey;
 
 function enableOAuth2() {
 	oauth2Enabled = true;
