@@ -59,7 +59,6 @@ describe('superagent-auth', function() {
 		var req = request.get('http://localhost/api').use(auth);
 
 		should.not.exist(req.header['X-Csrf-Token']);
-		req.end.should.equal(Object.getPrototypeOf(req).end); // no funny business
 	});
 
 	it('sends refreshcookie preflight on boot', function(done) {
