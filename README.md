@@ -18,6 +18,10 @@ request
     .get('/d2l/api/lp/1.5/users/whoami')
     .use(auth)
     .end(function(err, res) {
+        if(err) {
+           console.log('I always check for errors! ' + err.status + ' ' + err.response);
+           return;
+        }
         var user = res.body;
         console.log('Hello, ' + user.FirstName + ' ' + user.LastName);
     });
