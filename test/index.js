@@ -5,7 +5,6 @@ var nock = require('nock'),
 nock.disableNetConnect();
 
 var XSRF_TOKEN = 'some-token';
-global.localStorage = { 'XSRF.Token': XSRF_TOKEN };
 
 var auth = require('../');
 
@@ -18,198 +17,249 @@ function theFuture() {
 }
 
 describe('superagent-auth', function() {
-	beforeEach(function() {
-		auth._enableOAuth2();
-		auth._setAccessTokenExpiry(0);
+
+	describe('use', function() {
+
+		beforeEach(function() {
+			auth._enableOAuth2();
+			auth._setAccessTokenExpiry(0);
+			global.localStorage = {
+				'XSRF.Token': XSRF_TOKEN
+			};
+		});
+
+		it('adds app id (legacy)', function() {
+			auth._setAccessTokenExpiry(theFuture());
+
+			var endpoint = nock('http://localhost')
+				.matchHeader('X-D2L-App-Id', 'deprecated')
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {});
+
+			endpoint.done();
+		});
+
+		it('adds csrf token for relative URLs', function() {
+			auth._setAccessTokenExpiry(theFuture());
+
+			var endpoint = nock('http://localhost')
+				.matchHeader('X-Csrf-Token', XSRF_TOKEN)
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {});
+
+			endpoint.done();
+		});
+
+		it('does not add xsrf token for relative URLs if token not present', function() {
+			global.localStorage = {};
+			var req = request.get('/api').use(auth);
+			should.not.exist(req.header['X-Csrf-Token']);
+			req.end.should.equal(Object.getPrototypeOf(req).end);
+		});
+
+		it('does not add xsrf token for non-relative URLs', function() {
+			var req = request.get('http://domain:1234/api').use(auth);
+			should.not.exist(req.header['X-Csrf-Token']);
+		});
+
+		it('sends refreshcookie preflight on boot for relative URLs', function(done) {
+			var endpoint = nock('http://localhost')
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.matchHeader('X-Csrf-Token', XSRF_TOKEN)
+				.reply(204)
+				.get('/api')
+				.matchHeader('X-Csrf-Token', XSRF_TOKEN)
+				.reply(200);
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {
+					endpoint.done();
+					auth._accessTokenExpiry()
+						.should.equal(0); // no cache-control --> can't set an expiry
+					done();
+				});
+		});
+
+		it('sends refreshcookie preflight on boot for known URLs', function(done) {
+			var endpoint = nock('http://domain:1234')
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.reply(204)
+				.get('/api')
+				.reply(200);
+			request
+				.get('http://domain:1234/api')
+				.use(auth)
+				.end(function(err,res) {
+					should.not.exist(err);
+					should.exist(res);
+					endpoint.done();
+					auth._accessTokenExpiry()
+						.should.equal(0); // no cache-control --> can't set an expiry
+					done();
+				});
+		});
+
+		it('stops trying refreshcookie once it gets a 404', function(done) {
+			var endpoint = nock('http://localhost')
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.reply(404)
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {
+					endpoint.done();
+
+					auth._isOAuth2Enabled()
+						.should.be.exactly(false);
+
+					done();
+				});
+		});
+
+		it('doesnt call refreshcookie if oauth2 is disabled', function(done) {
+			auth._disableOAuth2();
+
+			var endpoint = nock('http://localhost')
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {
+					endpoint.done();
+
+					auth._isOAuth2Enabled()
+						.should.be.exactly(false);
+
+					done();
+				});
+		});
+
+		it('handles basic cache-control header', function(done) {
+			var maxLength = 10;
+
+			var endpoint = nock('http://localhost')
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.reply(204, '', {
+					'Cache-Control': 'max-age=' + maxLength
+				})
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {
+					endpoint.done();
+
+					auth._accessTokenExpiry()
+						.should.be.within(now() - maxLength, now() + maxLength);
+
+					done();
+				});
+		});
+
+		it('handles complicated cache-control header', function(done) {
+			var maxLength = 100;
+
+			var endpoint = nock('http://localhost')
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.reply(204, '', {
+					'Cache-Control': 'private , max-age   = ' + maxLength
+				})
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {
+					endpoint.done();
+
+					auth._accessTokenExpiry()
+						.should.be.within(now() - maxLength, now() + maxLength);
+
+					done();
+				});
+		});
+
+		it('doesn\'t block request on preflight failure', function(done) {
+			var endpoint = nock('http://localhost')
+				.post('/d2l/lp/auth/oauth2/refreshcookie')
+				.reply(500)
+				.get('/api')
+				.reply(200);
+
+			request
+				.get('/api')
+				.use(auth)
+				.end(function() {
+					endpoint.done();
+
+					auth._accessTokenExpiry()
+						.should.equal(0);
+
+					done();
+				});
+		});
+
+		it('should return something from "end" when not expired', function() {
+			global.D2LAccessTokenExpiresAt = theFuture();
+			var req = request
+				.get('/api')
+				.use(auth)
+				.end(function() {});
+
+			should.exist(req);
+		});
+
+		it('should return something from "end" when expired', function() {
+			var req = request
+				.get('/api')
+				.use(auth)
+				.end(function() {});
+
+			should.exist(req);
+		});
+
 	});
 
-	it('adds app id (legacy)', function() {
-		auth._setAccessTokenExpiry(theFuture());
+	describe('tryGetOrigin', function() {
 
-		var endpoint = nock('http://localhost')
-			.matchHeader('X-D2L-App-Id', 'deprecated')
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {});
-
-		endpoint.done();
-	});
-
-	it('adds csrf token for relative URLs', function() {
-		auth._setAccessTokenExpiry(theFuture());
-
-		var endpoint = nock('http://localhost')
-			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {});
-
-		endpoint.done();
-	});
-
-	it('does not add xsrf token for non-relative URLs', function() {
-		var req = request.get('http://localhost/api').use(auth);
-
-		should.not.exist(req.header['X-Csrf-Token']);
-		req.end.should.equal(Object.getPrototypeOf(req).end); // no funny business
-	});
-
-	it('sends refreshcookie preflight on boot', function(done) {
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
-			.reply(204)
-			.get('/api')
-			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._accessTokenExpiry()
-					.should.equal(0); // no cache-control --> can't set an expiry
-
-				done();
+		[
+			{url:'', result:null},
+			{url:'/api', result:null},
+			{url:'/api/http://', result:null},
+			{url:'ftp://foo.com', result:null},
+			{url:'http:///', result:null},
+			{url:'http://domain.com/api', result:'http://domain.com'},
+			{url:'http://domain.com/', result:'http://domain.com'},
+			{url:'http://domain.com:1234/api', result:'http://domain.com:1234'},
+			{url:'http://domain.com', result:'http://domain.com'},
+			{url:'https://www.domain.com/api', result:'https://www.domain.com'},
+			{url:'HtTpS://domain.com/api', result:'HtTpS://domain.com'}
+		].forEach(function(val) {
+			it('should parse "' + val.url + '" to "' + val.result + '"', function() {
+				var origin = auth._tryGetOrigin(val.url);
+				should.equal(origin, val.result);
 			});
+		});
 
-	});
-
-	it('stops trying refreshcookie once it gets a 404', function(done) {
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(404)
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._isOAuth2Enabled()
-					.should.be.exactly(false);
-
-				done();
-			});
-	});
-
-	it('doesnt call refreshcookie if oauth2 is disabled', function(done) {
-		auth._disableOAuth2();
-
-		var endpoint = nock('http://localhost')
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._isOAuth2Enabled()
-					.should.be.exactly(false);
-
-				done();
-			});
-	});
-
-	it('handles basic cache-control header', function(done) {
-		var maxLength = 10;
-
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(204, '', {
-				'Cache-Control': 'max-age=' + maxLength
-			})
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._accessTokenExpiry()
-					.should.be.within(now() - maxLength, now() + maxLength);
-
-				done();
-			});
-	});
-
-	it('handles complicated cache-control header', function(done) {
-		var maxLength = 100;
-
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(204, '', {
-				'Cache-Control': 'private , max-age   = ' + maxLength
-			})
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._accessTokenExpiry()
-					.should.be.within(now() - maxLength, now() + maxLength);
-
-				done();
-			});
-	});
-
-	it('doesn\'t block request on preflight failure', function(done) {
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(500)
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._accessTokenExpiry()
-					.should.equal(0);
-
-				done();
-			});
-	});
-
-	it('should return something from "end" when not expired', function() {
-		global.D2LAccessTokenExpiresAt = theFuture();
-		var req = request
-			.get('/api')
-			.use(auth)
-			.end(function() {});
-
-		should.exist(req);
-	});
-
-	it('should return something from "end" when expired', function() {
-		var req = request
-			.get('/api')
-			.use(auth)
-			.end(function() {});
-
-		should.exist(req);
 	});
 
 });
