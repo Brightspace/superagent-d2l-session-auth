@@ -31,5 +31,8 @@
     "pretest": "jshint index.js test",
     "test": "istanbul cover ./node_modules/mocha/bin/_mocha test/*.js -- -R spec",
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+  },
+  "dependencies": {
+    "frau-superagent-xsrf-token": "^1.0.1"
   }
 }

@@ -1,6 +1,7 @@
 'use strict';
 
-var superagent = require('superagent');
+var superagent = require('superagent'),
+	xsrf = require('frau-superagent-xsrf-token');
 
 var accessTokenExpiresAt = 0,
 	oauth2Enabled = true;
@@ -10,9 +11,7 @@ function now() {
 }
 
 function addHeaders(req) {
-	if(req.url[0] === '/') {
-		req.set('X-Csrf-Token', localStorage['XSRF.Token']);
-	}
+	req = req.use(xsrf);
 	req.set('X-D2L-App-Id', 'deprecated');
 	return req;
 }
@@ -50,7 +49,7 @@ function processRefreshResponse(err, res) {
 
 module.exports = function(req) {
 
-	req.use(addHeaders);
+	req = req.use(addHeaders);
 
 	if(!isOAuth2Enabled()) {
 		return req;
