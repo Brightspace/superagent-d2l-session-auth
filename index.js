@@ -1,105 +1,46 @@
 'use strict';
 
-var superagent = require('superagent'),
+var getJwt = require('frau-jwt'),
+	superagent = require('superagent'),
 	xsrf = require('frau-superagent-xsrf-token');
 
-var accessTokenExpiresAt = 0,
-	oauth2Enabled = true;
+function noop () {}
 
-function now() {
-	return Date.now()/1000 | 0;
+function isRelative/*ly safe*/ (url) {
+	return typeof url === 'string'
+		&& url.length > 0
+		&& url[0] === '/';
 }
 
-function addHeaders(req) {
+module.exports = function (req) {
 	req = req.use(xsrf);
 	req.set('X-D2L-App-Id', 'deprecated');
-	return req;
-}
 
-function processRefreshResponse(err, res) {
-	// Prior to OAuth 2 support the refreshcookie route returns 404.
-	if(res.status == 404) {
-		disableOAuth2();
-		return;
-	}
-
-	// In the future we should log an error
-	if(err || !res.ok) {
-		return;
-	}
-
-	var cacheControl = res.headers['cache-control'];
-	if(!cacheControl) {
-		return;
-	}
-
-	var directives = cacheControl.split(',');
-	var len = directives.length;
-	for(var i=0; i<len; i++) {
-		if (directives[i].indexOf('max-age') == -1) {
-			continue;
+	var end = req.end;
+	req.end = function (cb) {
+		function finish () {
+			req.end = end;
+			req.end(cb);
 		}
 
-		var maxAge = +directives[i].split('=')[1];
-		setAccessTokenExpiry(now() + maxAge);
-		break;
-	}
-
-}
-
-module.exports = function(req) {
-
-	req = req.use(addHeaders);
-
-	if(!isOAuth2Enabled()) {
-		return req;
-	}
-
-	var oldEnd = req.end;
-	req.end = function(cb) {
-		function finish() {
-			req.end = oldEnd;
-			return req.end(cb);
+		if (!isRelative(req.url)) {
+			finish();
+			return this;
 		}
-		if(now() < accessTokenExpiry()) {
-			return finish();
-		}
-		superagent
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.use(addHeaders)
-			.end(function(err, res) {
-				processRefreshResponse(err, res);
-				finish();
+
+		getJwt()
+			.then(function (token) {
+				req.set('Authorization', 'Bearer ' + token);
+			})
+			.catch(noop)
+			.then(function () {
+				// Run this async in another turn
+				// So we don't catch errors with our Promise
+				setTimeout(finish);
 			});
+
 		return this;
 	};
 
 	return req;
-
 };
-
-module.exports._accessTokenExpiry = accessTokenExpiry;
-module.exports._setAccessTokenExpiry = setAccessTokenExpiry;
-module.exports._enableOAuth2 = enableOAuth2;
-module.exports._disableOAuth2 = disableOAuth2;
-module.exports._isOAuth2Enabled = isOAuth2Enabled;
-
-function enableOAuth2() {
-	oauth2Enabled = true;
-}
-
-function disableOAuth2() {
-	oauth2Enabled = false;
-}
-
-function isOAuth2Enabled() {
-	return oauth2Enabled;
-}
-
-function accessTokenExpiry() {
-	return accessTokenExpiresAt;
-}
-
-function setAccessTokenExpiry(val) {
-	accessTokenExpiresAt = val;
-}

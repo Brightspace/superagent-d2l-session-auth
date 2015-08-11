@@ -1,28 +1,23 @@
-var nock = require('nock'),
+var assert = require('assert'),
+	nock = require('nock'),
+	rewire = require('rewire'),
 	should = require('should'),
+	sinon = require('sinon'),
 	request = require('superagent');
 
 nock.disableNetConnect();
 
-var auth = require('../');
-
-function now() {
-	return Date.now()/1000 | 0;
-}
-
-function theFuture() {
-	return 1000 + now();
-}
+var auth = rewire('../');
 
 describe('superagent-auth', function() {
-	beforeEach(function() {
-		auth._enableOAuth2();
-		auth._setAccessTokenExpiry(0);
+	var getJwt;
+	beforeEach(function () {
+		getJwt = sinon.stub();
+		getJwt.returns(Promise.resolve('foo'));
+		auth.__set__('getJwt', getJwt);
 	});
 
 	it('adds app id (legacy)', function(done) {
-		auth._setAccessTokenExpiry(theFuture());
-
 		var endpoint = nock('http://localhost')
 			.matchHeader('X-D2L-App-Id', 'deprecated')
 			.get('/api')
@@ -37,137 +32,67 @@ describe('superagent-auth', function() {
 			});
 	});
 
-	it('sends refreshcookie preflight on boot', function(done) {
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(204)
+	it('adds jwt token to Authorization header', function (done) {
+		var expectedToken = 'token';
+
+		var req = nock('http://localhost')
+			.matchHeader('Authorization', 'Bearer ' + expectedToken)
 			.get('/api')
 			.reply(200);
+
+		getJwt.returns(Promise.resolve(expectedToken));
 
 		request
 			.get('/api')
 			.use(auth)
-			.end(function() {
-				endpoint.done();
+			.end(function () {
+				req.done();
 
-				auth._accessTokenExpiry()
-					.should.equal(0); // no cache-control --> can't set an expiry
-
-				done();
-			});
-
-	});
-
-	it('stops trying refreshcookie once it gets a 404', function(done) {
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(404)
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._isOAuth2Enabled()
-					.should.be.exactly(false);
+				sinon.assert.called(getJwt);
 
 				done();
 			});
 	});
 
-	it('doesnt call refreshcookie if oauth2 is disabled', function(done) {
-		auth._disableOAuth2();
-
-		var endpoint = nock('http://localhost')
+	it('doesn\'t add jwt token to not-relative endpoints', function (done) {
+		var req = nock('http://localhost')
 			.get('/api')
 			.reply(200);
 
 		request
-			.get('/api')
+			.get('http://localhost/api')
 			.use(auth)
-			.end(function() {
-				endpoint.done();
+			.end(function (_, res) {
+				req.done();
 
-				auth._isOAuth2Enabled()
-					.should.be.exactly(false);
-
-				done();
-			});
-	});
-
-	it('handles basic cache-control header', function(done) {
-		var maxLength = 10;
-
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(204, '', {
-				'Cache-Control': 'max-age=' + maxLength
-			})
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._accessTokenExpiry()
-					.should.be.within(now() - maxLength, now() + maxLength);
-
-				done();
-			});
-	});
-
-	it('handles complicated cache-control header', function(done) {
-		var maxLength = 100;
-
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(204, '', {
-				'Cache-Control': 'private , max-age   = ' + maxLength
-			})
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {
-				endpoint.done();
-
-				auth._accessTokenExpiry()
-					.should.be.within(now() - maxLength, now() + maxLength);
+				sinon.assert.notCalled(getJwt);
+				assert(res.req._headers.authorization === undefined);
 
 				done();
 			});
 	});
 
 	it('doesn\'t block request on preflight failure', function(done) {
-		var endpoint = nock('http://localhost')
-			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.reply(500)
+		getJwt.returns(Promise.reject(new Error()));
+
+		var req = nock('http://localhost')
 			.get('/api')
 			.reply(200);
 
 		request
 			.get('/api')
 			.use(auth)
-			.end(function() {
-				endpoint.done();
+			.end(function (_, res) {
+				req.done();
 
-				auth._accessTokenExpiry()
-					.should.equal(0);
+				sinon.assert.called(getJwt);
+				assert(res.req._headers.authorization === undefined);
 
 				done();
 			});
 	});
 
-	it('should return something from "end" when not expired', function() {
-		global.D2LAccessTokenExpiresAt = theFuture();
+	it('should return something from "end" when endpoint is allowed', function() {
 		var req = request
 			.get('/api')
 			.use(auth)
@@ -176,9 +101,9 @@ describe('superagent-auth', function() {
 		should.exist(req);
 	});
 
-	it('should return something from "end" when expired', function() {
+	it('should return something from "end" when endpoint is not allowed', function() {
 		var req = request
-			.get('/api')
+			.get('http://localhost/api')
 			.use(auth)
 			.end(function() {});
 
