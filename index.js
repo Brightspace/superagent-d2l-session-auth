@@ -25,7 +25,12 @@ function isBrightspaceApi (url) {
 		);
 }
 
-function isTrusted (urlstr) {
+function isTrustedHost (url, trustedHost) {
+	return typeof trustedHost === 'string'
+		&& url.host === trustedHost;
+}
+
+function isTrusted (urlstr, trustedHost) {
 	if (typeof urlstr !== 'string'
 		|| urlstr.length === 0
 	) {
@@ -35,38 +40,43 @@ function isTrusted (urlstr) {
 	var parsed = url.parse(urlstr);
 
 	return isRelative(parsed)
-		|| isBrightspaceApi(parsed);
+		|| isBrightspaceApi(parsed)
+		|| isTrustedHost(parsed, trustedHost);
 }
 
-module.exports = function (req) {
-	req = req.use(xsrf);
-	req.set('X-D2L-App-Id', 'deprecated');
+module.exports = function (opts) {
+	opts = opts || {};
 
-	var end = req.end;
-	req.end = function (cb) {
-		function finish () {
-			req.end = end;
-			req.end(cb);
-		}
+	return function (req) {
+		req = req.use(xsrf);
+		req.set('X-D2L-App-Id', 'deprecated');
 
-		if (!isTrusted(req.url)) {
-			finish();
+		var end = req.end;
+		req.end = function (cb) {
+			function finish () {
+				req.end = end;
+				req.end(cb);
+			}
+
+			if (!isTrusted(req.url, opts.trustedHost)) {
+				finish();
+				return this;
+			}
+
+			getJwt()
+				.then(function (token) {
+					req.set('Authorization', 'Bearer ' + token);
+				})
+				.catch(noop)
+				.then(function () {
+					// Run this async in another turn
+					// So we don't catch errors with our Promise
+					setTimeout(finish);
+				});
+
 			return this;
-		}
+		};
 
-		getJwt()
-			.then(function (token) {
-				req.set('Authorization', 'Bearer ' + token);
-			})
-			.catch(noop)
-			.then(function () {
-				// Run this async in another turn
-				// So we don't catch errors with our Promise
-				setTimeout(finish);
-			});
-
-		return this;
+		return req;
 	};
-
-	return req;
 };

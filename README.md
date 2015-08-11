@@ -1,5 +1,4 @@
-superagent-d2l-session-auth
-===========================
+# superagent-d2l-session-auth
 
 [![NPM version][npm-image]][npm-url]
 [![Build status][ci-image]][ci-url]
@@ -7,8 +6,7 @@ superagent-d2l-session-auth
 
 A superagent plugin that adds D2L auth headers
 
-Usage
------
+## Usage
 
 ```js
 var request = require('superagent'),
@@ -16,7 +14,7 @@ var request = require('superagent'),
 
 request
     .get('/d2l/api/lp/1.5/users/whoami')
-    .use(auth)
+    .use(auth())
     .end(function(err, res) {
         if(err) {
            console.log('I always check for errors! ' + err.status + ' ' + err.response);
@@ -26,6 +24,32 @@ request
         console.log('Hello, ' + user.FirstName + ' ' + user.LastName);
     });
 ```
+
+
+### API
+
+---
+
+#### `auth([Object options])` -> `Function`
+
+The export is a factory function which creates the superagent plugin. The
+result of this call is what should be passed into `.use`.
+
+##### Option: trustedHost `String`
+
+You may optionally specify an additional host which is trusted and which
+authorization tokens should be sent to. This should be generally unnecessary,
+and should only be an instance of Brightspace.
+
+```js
+request
+	.get('https://school.brightspace.com/api')
+	.use(auth({
+		trustedHost: 'school.brightspace.com'
+	}))
+	.end(/* ... */);
+```
+
 
 [npm-url]: https://npmjs.org/package/superagent-d2l-session-auth
 [npm-image]: https://badge.fury.io/js/superagent-d2l-session-auth.png

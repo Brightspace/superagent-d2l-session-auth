@@ -26,7 +26,7 @@ describe('superagent-auth', function() {
 
 		request
 			.get('/api')
-			.use(auth)
+			.use(auth())
 			.end(function() {
 				endpoint.done();
 				done();
@@ -37,17 +37,24 @@ describe('superagent-auth', function() {
 		['', true],
 		['https://foo.api.brightspace.com', true],
 		['https://api.brightspace.com', true],
+		['http://niceness.com', true, 'niceness.com'],
+		['https://niceness.com', true, 'niceness.com'],
+		['http://niceness.com:1234', true, 'niceness.com:1234'],
 		['http://foo.api.brightspace.com', false],
 		['http://api.brightspace.com', false],
 		['https://notapi.brightspace.com', false],
 		['https://api.brightspace.com.evil.com', false],
 		['https://bad.api.brightspace.com.evil.com', false],
+		['http://sub.niceness.com', false, 'niceness.com'],
+		['https://sub.niceness.com', false, 'niceness.com'],
+		['http://niceness.com:5678', false, 'niceness.com:1234'],
 		['https://localhost', false]
 	].forEach(function (test) {
 		var host = test[0],
-			shouldAdd = test[1];
+			shouldAdd = test[1],
+			trusted = test[2];
 
-		it('should ' + (shouldAdd ? '' : 'NOT ') + 'add jwt token to Authorization header for host "' + host + '"', function (done) {
+		it('should ' + (shouldAdd ? '' : 'NOT ') + 'add auth header for "' + host + '"' + (trusted ? ' (when "' + trusted + '" is trusted)' : ''), function (done) {
 			var expectedToken = 'token';
 			getJwt.returns(Promise.resolve(expectedToken));
 
@@ -63,9 +70,18 @@ describe('superagent-auth', function() {
 					.reply(200);
 			}
 
+			var plugin;
+			if (trusted !== undefined) {
+				plugin = auth({
+					trustedHost: trusted
+				});
+			} else {
+				plugin = auth();
+			}
+
 			request
 				.get(host + '/api')
-				.use(auth)
+				.use(plugin)
 				.end(function (_, res) {
 					req.done();
 
@@ -91,7 +107,7 @@ describe('superagent-auth', function() {
 
 		request
 			.get('/api')
-			.use(auth)
+			.use(auth())
 			.end(function (_, res) {
 				req.done();
 
@@ -105,7 +121,7 @@ describe('superagent-auth', function() {
 	it('should return something from "end" when endpoint is allowed', function() {
 		var req = request
 			.get('/api')
-			.use(auth)
+			.use(auth())
 			.end(function() {});
 
 		should.exist(req);
@@ -114,7 +130,7 @@ describe('superagent-auth', function() {
 	it('should return something from "end" when endpoint is not allowed', function() {
 		var req = request
 			.get('http://localhost/api')
-			.use(auth)
+			.use(auth())
 			.end(function() {});
 
 		should.exist(req);
