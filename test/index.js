@@ -1,5 +1,6 @@
 var assert = require('assert'),
 	nock = require('nock'),
+	Promise = require('lie'),
 	rewire = require('rewire'),
 	should = require('should'),
 	sinon = require('sinon'),
