@@ -4,9 +4,6 @@ var nock = require('nock'),
 
 nock.disableNetConnect();
 
-var XSRF_TOKEN = 'some-token';
-global.localStorage = { 'XSRF.Token': XSRF_TOKEN };
-
 var auth = require('../');
 
 function now() {
@@ -23,7 +20,7 @@ describe('superagent-auth', function() {
 		auth._setAccessTokenExpiry(0);
 	});
 
-	it('adds app id (legacy)', function() {
+	it('adds app id (legacy)', function(done) {
 		auth._setAccessTokenExpiry(theFuture());
 
 		var endpoint = nock('http://localhost')
@@ -34,40 +31,17 @@ describe('superagent-auth', function() {
 		request
 			.get('/api')
 			.use(auth)
-			.end(function() {});
-
-		endpoint.done();
-	});
-
-	it('adds csrf token for relative URLs', function() {
-		auth._setAccessTokenExpiry(theFuture());
-
-		var endpoint = nock('http://localhost')
-			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth)
-			.end(function() {});
-
-		endpoint.done();
-	});
-
-	it('does not add xsrf token for non-relative URLs', function() {
-		var req = request.get('http://localhost/api').use(auth);
-
-		should.not.exist(req.header['X-Csrf-Token']);
+			.end(function() {
+				endpoint.done();
+				done();
+			});
 	});
 
 	it('sends refreshcookie preflight on boot', function(done) {
 		var endpoint = nock('http://localhost')
 			.post('/d2l/lp/auth/oauth2/refreshcookie')
-			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
 			.reply(204)
 			.get('/api')
-			.matchHeader('X-Csrf-Token', XSRF_TOKEN)
 			.reply(200);
 
 		request
