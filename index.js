@@ -2,14 +2,40 @@
 
 var getJwt = require('frau-jwt'),
 	superagent = require('superagent'),
+	url = require('url'),
 	xsrf = require('frau-superagent-xsrf-token');
 
 function noop () {}
 
 function isRelative/*ly safe*/ (url) {
-	return typeof url === 'string'
-		&& url.length > 0
-		&& url[0] === '/';
+	return url.hostname === null;
+}
+
+function endsWith (haystack, needle) {
+	var expectedPosition = haystack.length - needle.length;
+	var lastIndex = haystack.indexOf(needle, expectedPosition);
+	var result = lastIndex !== -1 && lastIndex === expectedPosition;
+	return result;
+}
+
+function isBrightspaceApi (url) {
+	return url.protocol === 'https:'
+		&& (url.hostname === 'api.brightspace.com'
+			|| endsWith(url.hostname, '.api.brightspace.com')
+		);
+}
+
+function isTrusted (urlstr) {
+	if (typeof urlstr !== 'string'
+		|| urlstr.length === 0
+	) {
+		return false;
+	}
+
+	var parsed = url.parse(urlstr);
+
+	return isRelative(parsed)
+		|| isBrightspaceApi(parsed);
 }
 
 module.exports = function (req) {
@@ -23,7 +49,7 @@ module.exports = function (req) {
 			req.end(cb);
 		}
 
-		if (!isRelative(req.url)) {
+		if (!isTrusted(req.url)) {
 			finish();
 			return this;
 		}
