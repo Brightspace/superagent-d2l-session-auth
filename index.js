@@ -43,7 +43,6 @@ module.exports = function (opts) {
 
 	return function (req) {
 		req = req.use(xsrf);
-		req.set('X-D2L-App-Id', 'deprecated');
 
 		var end = req.end;
 		req.end = function (cb) {
