@@ -35,6 +35,11 @@ request
 The export is a factory function which creates the superagent plugin. The
 result of this call is what should be passed into `.use`.
 
+##### Option: scope `String` _(\*:\*\:*)_
+
+You may optionally specify scope(s) desired on the requested token. This option
+is passed directly into the backing [frau-jwt][frau-jwt] library.
+
 ##### Option: trustedHost `String`
 
 You may optionally specify an additional host which is trusted and which
@@ -57,3 +62,5 @@ request
 [ci-url]: https://travis-ci.org/Brightspace/superagent-d2l-session-auth
 [coverage-image]: https://img.shields.io/coveralls/Brightspace/superagent-d2l-session-auth.svg
 [coverage-url]: https://coveralls.io/r/Brightspace/superagent-d2l-session-auth?branch=master
+
+[frau-jwt]: https://github.com/Brightspace/frau-jwt

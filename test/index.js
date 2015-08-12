@@ -98,6 +98,25 @@ describe('superagent-auth', function() {
 		});
 	});
 
+	it('should pass scope option to jwt', function (done) {
+		var req = nock('http://localhost')
+			.get('/api')
+			.reply(200);
+
+		request
+			.get('/api')
+			.use(auth({
+				scope: 'a:b:c x:y:z'
+			}))
+			.end(function () {
+				req.done();
+
+				sinon.assert.calledWith(getJwt, 'a:b:c x:y:z');
+
+				done();
+			});
+	});
+
 	it('doesn\'t block request on preflight failure', function(done) {
 		getJwt.returns(Promise.reject(new Error()));
 

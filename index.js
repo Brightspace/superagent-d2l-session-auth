@@ -63,7 +63,7 @@ module.exports = function (opts) {
 				return this;
 			}
 
-			getJwt()
+			getJwt(opts.scope)
 				.then(function (token) {
 					req.set('Authorization', 'Bearer ' + token);
 				})
