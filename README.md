@@ -10,11 +10,11 @@ A superagent plugin that adds D2L auth headers
 
 ```js
 var request = require('superagent'),
-    auth = require('superagent-d2l-session-auth');
+    auth = require('superagent-d2l-session-auth')();
 
 request
     .get('/d2l/api/lp/1.5/users/whoami')
-    .use(auth())
+    .use(auth)
     .end(function(err, res) {
         if(err) {
            console.log('I always check for errors! ' + err.status + ' ' + err.response);
@@ -47,11 +47,13 @@ authorization tokens should be sent to. This should be generally unnecessary,
 and should only be an instance of Brightspace.
 
 ```js
+var auth = require('superagent-d2l-session-auth')({
+	trustedHost: 'school.brightspace.com'
+});
+
 request
 	.get('https://school.brightspace.com/api')
-	.use(auth({
-		trustedHost: 'school.brightspace.com'
-	}))
+	.use(auth)
 	.end(/* ... */);
 ```
 
