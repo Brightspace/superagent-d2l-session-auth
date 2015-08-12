@@ -18,21 +18,6 @@ describe('superagent-auth', function() {
 		auth.__set__('getJwt', getJwt);
 	});
 
-	it('adds app id (legacy)', function(done) {
-		var endpoint = nock('http://localhost')
-			.matchHeader('X-D2L-App-Id', 'deprecated')
-			.get('/api')
-			.reply(200);
-
-		request
-			.get('/api')
-			.use(auth())
-			.end(function() {
-				endpoint.done();
-				done();
-			});
-	});
-
 	[
 		['', true],
 		['https://foo.api.brightspace.com', true],
