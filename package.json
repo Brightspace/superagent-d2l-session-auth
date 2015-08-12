@@ -22,9 +22,12 @@
     "coveralls": "^2.11.2",
     "istanbul": "^0.3.5",
     "jshint": "^2.5.11",
+    "lie": "^3.0.1",
     "mocha": "^2.0.1",
     "nock": "^0.51.0",
+    "rewire": "^2.3.4",
     "should": "^5.0.1",
+    "sinon": "^1.15.4",
     "superagent": "^1.2.0"
   },
   "scripts": {
@@ -33,6 +36,7 @@
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
   },
   "dependencies": {
+    "frau-jwt": "^1.0.4",
     "frau-superagent-xsrf-token": "^1.0.1"
   }
 }

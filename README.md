@@ -1,5 +1,4 @@
-superagent-d2l-session-auth
-===========================
+# superagent-d2l-session-auth
 
 [![NPM version][npm-image]][npm-url]
 [![Build status][ci-image]][ci-url]
@@ -7,12 +6,11 @@ superagent-d2l-session-auth
 
 A superagent plugin that adds D2L auth headers
 
-Usage
------
+## Usage
 
 ```js
 var request = require('superagent'),
-    auth = require('superagent-d2l-session-auth');
+    auth = require('superagent-d2l-session-auth')();
 
 request
     .get('/d2l/api/lp/1.5/users/whoami')
@@ -27,9 +25,44 @@ request
     });
 ```
 
+
+### API
+
+---
+
+#### `auth([Object options])` -> `Function`
+
+The export is a factory function which creates the superagent plugin. The
+result of this call is what should be passed into `.use`.
+
+##### Option: scope `String` _(\*:\*\:*)_
+
+You may optionally specify scope(s) desired on the requested token. This option
+is passed directly into the backing [frau-jwt][frau-jwt] library.
+
+##### Option: trustedHost `String`
+
+You may optionally specify an additional host which is trusted and which
+authorization tokens should be sent to. This should be generally unnecessary,
+and should only be an instance of Brightspace.
+
+```js
+var auth = require('superagent-d2l-session-auth')({
+	trustedHost: 'school.brightspace.com'
+});
+
+request
+	.get('https://school.brightspace.com/api')
+	.use(auth)
+	.end(/* ... */);
+```
+
+
 [npm-url]: https://npmjs.org/package/superagent-d2l-session-auth
 [npm-image]: https://badge.fury.io/js/superagent-d2l-session-auth.png
 [ci-image]: https://travis-ci.org/Brightspace/superagent-d2l-session-auth.svg?branch=master
 [ci-url]: https://travis-ci.org/Brightspace/superagent-d2l-session-auth
 [coverage-image]: https://img.shields.io/coveralls/Brightspace/superagent-d2l-session-auth.svg
 [coverage-url]: https://coveralls.io/r/Brightspace/superagent-d2l-session-auth?branch=master
+
+[frau-jwt]: https://github.com/Brightspace/frau-jwt
