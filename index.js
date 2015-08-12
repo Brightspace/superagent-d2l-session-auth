@@ -31,12 +31,6 @@ function isTrustedHost (url, trustedHost) {
 }
 
 function isTrusted (urlstr, trustedHost) {
-	if (typeof urlstr !== 'string'
-		|| urlstr.length === 0
-	) {
-		return false;
-	}
-
 	var parsed = url.parse(urlstr);
 
 	return isRelative(parsed)
