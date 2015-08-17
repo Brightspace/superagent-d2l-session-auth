@@ -1,13 +1,13 @@
 sudo: false
 language: node_js
 node_js:
-- 0.10
+- 0.12
 after_success: npm run report-coverage
 deploy:
   provider: npm
   email: d2ltravisdeploy@d2l.com
   api_key:
-    secure: ZyMjywm5byaca8VM04++cI+p7vXNyltpe/fJEqk+ass2IP6QB/RiW0lKr2ZI+OozVgJ2EvCB8TdH3LNh9saTE6J1n2yc1F2JukQsP26jlEuGKv6M2ew4iI1eK7/kf/JIW5yRS+oWxKiv0VHnniG3J6mhwPXXJ9RW6mnvduI6ae8=
+    secure: bwwFaIOnbDjxf9zjKDsM6SDdtBCN/anCDqS3EXtTBe+l5uRvFW6HwOa3gQV5ZjH9yqhOtO+8X6l1QiCa0+1grLRON/MjTs9drB3mDuNLMNr2ravGBz1aYszQCAnNF1/MNxUjHmK/OBDI34tCpkhvErX/EyGP0hP+Ua25czMuKEc=
   on:
     tags: true
     repo: Brightspace/superagent-d2l-session-auth
