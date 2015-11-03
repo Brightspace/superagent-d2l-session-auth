@@ -27,7 +27,7 @@ function isBrightspaceApi (url) {
 
 function isTrustedHost (url, trustedHost) {
 	return typeof trustedHost === 'string'
-		&& url.host === trustedHost;
+		&& url.host === trustedHost.toLowerCase();
 }
 
 function isTrusted (urlstr, trustedHost) {
