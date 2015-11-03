@@ -23,6 +23,7 @@ describe('superagent-auth', function() {
 		['https://foo.api.brightspace.com', true],
 		['https://api.brightspace.com', true],
 		['http://niceness.com', true, 'niceness.com'],
+		['http://niceness.com', true, 'NICENESS.cOm'],
 		['https://niceness.com', true, 'niceness.com'],
 		['http://niceness.com:1234', true, 'niceness.com:1234'],
 		['http://foo.api.brightspace.com', false],
