@@ -1,3 +1,5 @@
+'use strict';
+
 var assert = require('assert'),
 	nock = require('nock'),
 	Promise = require('lie'),
@@ -12,7 +14,7 @@ var auth = rewire('../');
 
 describe('superagent-auth', function() {
 	var getJwt;
-	beforeEach(function () {
+	beforeEach(function() {
 		getJwt = sinon.stub();
 		getJwt.returns(Promise.resolve('foo'));
 		auth.__set__('getJwt', getJwt);
@@ -35,12 +37,12 @@ describe('superagent-auth', function() {
 		['https://sub.niceness.com', false, 'niceness.com'],
 		['http://niceness.com:5678', false, 'niceness.com:1234'],
 		['https://localhost', false]
-	].forEach(function (test) {
+	].forEach(function(test) {
 		var host = test[0],
 			shouldAdd = test[1],
 			trusted = test[2];
 
-		it('should ' + (shouldAdd ? '' : 'NOT ') + 'add auth header for "' + host + '"' + (trusted ? ' (when "' + trusted + '" is trusted)' : ''), function (done) {
+		it('should ' + (shouldAdd ? '' : 'NOT ') + 'add auth header for "' + host + '"' + (trusted ? ' (when "' + trusted + '" is trusted)' : ''), function(done) {
 			var expectedToken = 'token';
 			getJwt.returns(Promise.resolve(expectedToken));
 
@@ -68,7 +70,7 @@ describe('superagent-auth', function() {
 			request
 				.get(host + '/api')
 				.use(plugin)
-				.end(function (_, res) {
+				.end(function(_, res) {
 					req.done();
 
 					if (shouldAdd) {
@@ -84,7 +86,7 @@ describe('superagent-auth', function() {
 		});
 	});
 
-	it('should pass scope option to jwt', function (done) {
+	it('should pass scope option to jwt', function(done) {
 		var req = nock('http://localhost')
 			.get('/api')
 			.reply(200);
@@ -94,7 +96,7 @@ describe('superagent-auth', function() {
 			.use(auth({
 				scope: 'a:b:c x:y:z'
 			}))
-			.end(function () {
+			.end(function() {
 				req.done();
 
 				sinon.assert.calledWith(getJwt, 'a:b:c x:y:z');
@@ -113,7 +115,7 @@ describe('superagent-auth', function() {
 		request
 			.get('/api')
 			.use(auth())
-			.end(function (_, res) {
+			.end(function(_, res) {
 				req.done();
 
 				sinon.assert.called(getJwt);

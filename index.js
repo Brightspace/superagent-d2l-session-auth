@@ -1,36 +1,35 @@
 'use strict';
 
 var getJwt = require('frau-jwt'),
-	superagent = require('superagent'),
 	url = require('url'),
 	xsrf = require('frau-superagent-xsrf-token');
 
-function noop () {}
+function noop() {}
 
-function isRelative/*ly safe*/ (url) {
+function isRelative/*ly safe*/(url) {
 	return url.hostname === null;
 }
 
-function endsWith (haystack, needle) {
+function endsWith(haystack, needle) {
 	var expectedPosition = haystack.length - needle.length;
 	var lastIndex = haystack.indexOf(needle, expectedPosition);
 	var result = lastIndex !== -1 && lastIndex === expectedPosition;
 	return result;
 }
 
-function isBrightspaceApi (url) {
+function isBrightspaceApi(url) {
 	return url.protocol === 'https:'
 		&& (url.hostname === 'api.brightspace.com'
 			|| endsWith(url.hostname, '.api.brightspace.com')
 		);
 }
 
-function isTrustedHost (url, trustedHost) {
+function isTrustedHost(url, trustedHost) {
 	return typeof trustedHost === 'string'
 		&& url.host === trustedHost.toLowerCase();
 }
 
-function isTrusted (urlstr, trustedHost) {
+function isTrusted(urlstr, trustedHost) {
 	var parsed = url.parse(urlstr);
 
 	return isRelative(parsed)
@@ -38,15 +37,15 @@ function isTrusted (urlstr, trustedHost) {
 		|| isTrustedHost(parsed, trustedHost);
 }
 
-module.exports = function (opts) {
+module.exports = function(opts) {
 	opts = opts || {};
 
-	return function (req) {
+	return function(req) {
 		req = req.use(xsrf);
 
 		var end = req.end;
-		req.end = function (cb) {
-			function finish () {
+		req.end = function(cb) {
+			function finish() {
 				req.end = end;
 				req.end(cb);
 			}
@@ -57,11 +56,11 @@ module.exports = function (opts) {
 			}
 
 			getJwt(opts.scope)
-				.then(function (token) {
+				.then(function(token) {
 					req.set('Authorization', 'Bearer ' + token);
 				})
 				.catch(noop)
-				.then(function () {
+				.then(function() {
 					// Run this async in another turn
 					// So we don't catch errors with our Promise
 					setTimeout(finish);
