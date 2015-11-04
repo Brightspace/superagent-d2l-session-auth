@@ -21,7 +21,6 @@
   "devDependencies": {
     "coveralls": "^2.11.2",
     "istanbul": "^0.3.5",
-    "jshint": "^2.5.11",
     "lie": "^3.0.1",
     "mocha": "^2.0.1",
     "nock": "^0.51.0",
@@ -31,7 +30,6 @@
     "superagent": "^1.2.0"
   },
   "scripts": {
-    "pretest": "jshint index.js test",
     "test": "istanbul cover ./node_modules/mocha/bin/_mocha test/*.js -- -R spec",
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
   },
