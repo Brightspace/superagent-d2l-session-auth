@@ -21,7 +21,7 @@ describe('superagent-auth', function() {
 	});
 
 	[
-		['', true],
+		['', false],
 		['https://foo.api.brightspace.com', true],
 		['https://api.brightspace.com', true],
 		['http://niceness.com', true, 'niceness.com'],
@@ -87,12 +87,12 @@ describe('superagent-auth', function() {
 	});
 
 	it('should pass scope option to jwt', function(done) {
-		var req = nock('http://localhost')
-			.get('/api')
+		var req = nock('https://foo.api.brightspace.com')
+			.get('/bar')
 			.reply(200);
 
 		request
-			.get('/api')
+			.get('https://foo.api.brightspace.com/bar')
 			.use(auth({
 				scope: 'a:b:c x:y:z'
 			}))
@@ -108,12 +108,12 @@ describe('superagent-auth', function() {
 	it('doesn\'t block request on preflight failure', function(done) {
 		getJwt.returns(Promise.reject(new Error()));
 
-		var req = nock('http://localhost')
-			.get('/api')
+		var req = nock('https://api.brightspace.com')
+			.get('/bar')
 			.reply(200);
 
 		request
-			.get('/api')
+			.get('https://api.brightspace.com/bar')
 			.use(auth())
 			.end(function(_, res) {
 				req.done();
@@ -125,16 +125,16 @@ describe('superagent-auth', function() {
 			});
 	});
 
-	it('should return something from "end" when endpoint is allowed', function() {
+	it('should return something from "end" when auth is going to be added', function() {
 		var req = request
-			.get('/api')
+			.get('https://foo.api.brightspace.com/bar')
 			.use(auth())
 			.end(function() {});
 
 		should.exist(req);
 	});
 
-	it('should return something from "end" when endpoint is not allowed', function() {
+	it('should return something from "end" when auth is not going to be added', function() {
 		var req = request
 			.get('http://localhost/api')
 			.use(auth())

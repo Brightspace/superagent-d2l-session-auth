@@ -29,11 +29,8 @@ function isTrustedHost(url, trustedHost) {
 		&& url.host === trustedHost.toLowerCase();
 }
 
-function isTrusted(urlstr, trustedHost) {
-	var parsed = url.parse(urlstr);
-
-	return isRelative(parsed)
-		|| isBrightspaceApi(parsed)
+function isTrusted(parsed, trustedHost) {
+	return isBrightspaceApi(parsed)
 		|| isTrustedHost(parsed, trustedHost);
 }
 
@@ -50,7 +47,9 @@ module.exports = function(opts) {
 				req.end(cb);
 			}
 
-			if (!isTrusted(req.url, opts.trustedHost)) {
+			var parsed = url.parse(req.url);
+
+			if (isRelative(parsed) || !isTrusted(parsed, opts.trustedHost)) {
 				finish();
 				return this;
 			}
