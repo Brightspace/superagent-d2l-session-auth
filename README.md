@@ -57,6 +57,24 @@ request
 	.end(/* ... */);
 ```
 
+## Contributing
+
+1. **Fork** the repository. Committing directly against this repository is
+   highly discouraged.
+
+   2. Make your modifications in a branch, updating and writing new unit tests
+      as necessary in the `spec` directory.
+
+      3. Ensure that all tests pass with `npm test`
+
+      4. `rebase` your changes against master. *Do not merge*.
+
+      5. Submit a pull request to this repository. Wait for tests to run and someone
+         to chime in.
+
+### Code Style
+
+This repository is configured with [EditorConfig][EditorConfig] and [ESLint][ESLint] rules.
 
 [npm-url]: https://npmjs.org/package/superagent-d2l-session-auth
 [npm-image]: https://badge.fury.io/js/superagent-d2l-session-auth.png
@@ -64,5 +82,6 @@ request
 [ci-url]: https://travis-ci.org/Brightspace/superagent-d2l-session-auth
 [coverage-image]: https://img.shields.io/coveralls/Brightspace/superagent-d2l-session-auth.svg
 [coverage-url]: https://coveralls.io/r/Brightspace/superagent-d2l-session-auth?branch=master
-
+[EditorConfig]: http://editorconfig.org/
+[ESLint]: https://github.com/eslint/eslint
 [frau-jwt]: https://github.com/Brightspace/frau-jwt
