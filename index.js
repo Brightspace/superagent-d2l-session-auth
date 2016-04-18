@@ -49,7 +49,16 @@ module.exports = function(opts) {
 
 			var parsed = url.parse(req.url);
 
-			if (isRelative(parsed) || !isTrusted(parsed, opts.trustedHost)) {
+			// Relative URLs currently indicate JS running inside  the LE's
+			// origin. We don't need access tokens to call those APIs (the
+			// web session is sufficient.)
+			if (isRelative(parsed)) {
+				finish();
+				return this;
+			}
+
+			if (!isTrusted(parsed, opts.trustedHost)) {
+				console.warn('Not sending access token for ' + parsed + ', opts.trustedHost = ' + opts.trustedHost); // eslint-disable-line no-console
 				finish();
 				return this;
 			}
