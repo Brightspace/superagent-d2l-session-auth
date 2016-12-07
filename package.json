@@ -1,6 +1,6 @@
 {
   "name": "superagent-d2l-session-auth",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "A superagent plugin that adds D2L auth headers",
   "main": "index.js",
   "repository": {
@@ -38,7 +38,7 @@
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
   },
   "dependencies": {
-    "frau-jwt": "^1.0.8",
+    "frau-jwt": "^1.1.0",
     "frau-superagent-xsrf-token": "^1.0.1"
   }
 }
