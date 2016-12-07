@@ -10,7 +10,8 @@ var assert = require('assert'),
 
 nock.disableNetConnect();
 
-var auth = rewire('../');
+var auth = rewire('../'),
+	framed = rewire('../framed');
 
 describe('superagent-auth', function() {
 	var getJwt;
@@ -141,6 +142,24 @@ describe('superagent-auth', function() {
 			.end(function() {});
 
 		should.exist(req);
+	});
+
+	describe('framed', function() {
+		var sessionAuth;
+		beforeEach(function() {
+			framed.__set__('getJwt', getJwt);
+			sessionAuth = sinon.spy(framed.__get__('auth'));
+			framed.__set__('auth', sessionAuth);
+		});
+
+		it('should call sessionAuth with getJwt', function() {
+			request
+				.get('http://localhost/api')
+				.use(framed())
+				.end(function() {});
+
+			sinon.assert.calledWith(sessionAuth, getJwt, undefined);
+		});
 	});
 
 });

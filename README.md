@@ -25,6 +25,9 @@ request
     });
 ```
 
+For strictly iframed applications, consider requiring `superagent-d2l-session-auth/framed` instead.
+
+
 
 ### API
 
