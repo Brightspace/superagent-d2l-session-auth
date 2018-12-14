@@ -19,7 +19,9 @@ function endsWith(haystack, needle) {
 function isBrightspaceApi(url) {
 	return url.protocol === 'https:'
 		&& (url.hostname === 'api.brightspace.com'
+			|| url.hostname === 'api.dev.brightspace.com'
 			|| endsWith(url.hostname, '.api.brightspace.com')
+			|| endsWith(url.hostname, '.api.dev.brightspace.com')
 		);
 }
 
