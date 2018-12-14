@@ -33,7 +33,7 @@
     "superagent": "^3.4.1"
   },
   "scripts": {
-    "check-style": "eslint .",
+    "check-style": "eslint --ignore-path .gitignore .",
     "pretest": "npm run check-style",
     "test": "istanbul cover ./node_modules/mocha/bin/_mocha test/*.js -- -R spec",
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
